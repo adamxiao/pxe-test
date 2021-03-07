@@ -4,11 +4,11 @@ set -e
 
 # root权限安装
 sudo yum install -y httpd createrepo tftp-server xinetd syslinux dhcp vsftpd
-systemctl enable httpd xinetd dhcpd httpd vsftpd
+systemctl enable httpd xinetd dhcpd httpd vsftpd tftp
 
 centos_dir=/var/www/html/centos
 mkdir -p $centos_dir
-umount /dev/sr0
+#umount /dev/sr0
 mount /dev/sr0 $centos_dir
 # cp -a /mnt/* $centos_dir
 
@@ -77,10 +77,13 @@ STARTMODE=auto
 TYPE=Ethernet
 USERCTL=no
 IPADDR=192.168.56.2
-PREFIX=25
+PREFIX=24
 GATEWAY=192.168.56.1
 DNS1=114.114.114.114
 EOF
 
 systemctl restart network
-systemctl restart httpd xinetd dhcpd httpd vsftpd
+systemctl restart httpd xinetd dhcpd httpd vsftpd tftp
+
+systemctl disable firewalld
+systemctl stop firewalld
