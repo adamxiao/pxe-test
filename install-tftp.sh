@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# TODO: 定制修改
+# 1. 配置安装内核vmlinuz和initrd.img等
+# 2. 修改http服务器ip地址
+
 set -e
 
 yum install -y tftp-server xinetd syslinux
@@ -12,7 +16,6 @@ cp -r /usr/share/syslinux/* /var/lib/tftpboot/pxelinux
 # pxelinux默认配置文件
 PXE_CFG=/var/lib/tftpboot/pxelinux/pxelinux.cfg/default
 
-# TODO: 修改这个配置,以及initrd.img和vmlinuz
 if [[ ! -f $PXE_CFG ]]; then
 cat > $PXE_CFG << EOF
 default menu.c32
@@ -32,6 +35,11 @@ label -ksvd-818
   menu label ^Install KSVD-818 x64
   kernel image/ksvd-818/vmlinuz
   append initrd=image/ksvd-818/initrd.img method=http://192.168.56.2/ksvd-818 ks=http://192.168.56.2/ksvd-818/kickstart/ks.cfg devfs=nomount inst.vnc inst.vncpassword=ksvd2020
+
+label -ksvd-818-server
+  menu label ^Install KSVD-818-server x64
+  kernel image/ksvd-818-server/vmlinuz
+  append initrd=image/ksvd-818-server/initrd.img method=http://192.168.56.2/ksvd-818-server ks=http://192.168.56.2/ksvd-818-server/kickstart/ks.cfg devfs=nomount
 EOF
 fi
 

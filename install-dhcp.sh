@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# TODO: 定制修改
+# 1. 修改dhcp网段
+# 2. 修改tftp服务器相关配置
+
 set -e
 
 yum install -y dhcp

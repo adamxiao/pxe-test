@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
+# TODO: 
+# 1. 构建pxe安装源
+
 set -e
 
 yum install -y httpd createrepo
 systemctl enable httpd
-systemctl start httpd
 
 ksvd_dir=/var/www/html/ksvd-818
 mkdir -p $ksvd_dir
 
-# TODO: 将pxe安装镜像放到$ksvd_dir中, 可以直接mount iso, 或可以mount光驱
+# 将pxe安装镜像放到$ksvd_dir中, 可以直接mount iso, 或可以mount光驱
 # mount xxx.iso $ksvd_dir
 # mount /dev/sr0 $ksvd_dir
 
@@ -18,3 +20,6 @@ mkdir -p $ksvd_dir
 # 删除Package中的KSVD几个rpm，替换为818-server的几个KSVD rpm包
 # 然后重新生成软件源仓库
 # createrepo -d -g repodata/*.comps.xml .
+
+systemctl start httpd
+netstat -lntp | grep httpd && echo "install and start httpd success"
