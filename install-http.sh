@@ -4,6 +4,7 @@ set -e
 
 yum install -y httpd createrepo
 systemctl enable httpd
+systemctl start httpd
 
 ksvd_dir=/var/www/html/ksvd-818
 mkdir -p $ksvd_dir
