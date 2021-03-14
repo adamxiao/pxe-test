@@ -22,6 +22,7 @@ subnet 192.168.56.0 netmask 255.255.255.0 {
      range dynamic-bootp 192.168.56.100 192.168.56.200;
      option subnet-mask              255.255.255.0;  #设置子网掩码
      option routers                  192.168.56.1;   #设置网关
+     option domain-name-servers      8.8.8.8;        #设置dns
      next-server                     10.20.1.100;    #设置TFTP-Server地址，这是我搭建好的tftp服务器（后续搭建公共的）
      filename                        "pxelinux/pxelinux.0";   #设置TFTP需要下载的文件。这里我也在tftp服务器上配置好了
 }
