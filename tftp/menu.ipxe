@@ -1,0 +1,366 @@
+#!ipxe
+
+# Variables are specified in boot.ipxe.cfg
+
+# Some menu defaults
+# set menu-timeout 0 if no client-specific settings found
+isset ${menu-timeout} || set menu-timeout 0
+set submenu-timeout ${menu-timeout}
+isset ${menu-default} || set menu-default exit
+
+# Figure out if client is 64-bit capable
+cpuid --ext 29 && set arch x64 || set arch x86
+cpuid --ext 29 && set archl amd64 || set archl i386
+
+###################### MAIN MENU ####################################
+
+:start
+menu iPXE boot menu for ${initiator-iqn}
+item --gap --             ------------------------- Operating systems ------------------------------
+item --key u ubuntu       Boot Ubuntu 20.04 from iSCSI
+item --key u ubuntu24     Boot Ubuntu 24.04 from iSCSI
+item --key u tmp-recover  Boot tmp-recover  from iSCSI
+item --gap --             ------------------------- Tools and utilities ----------------------------
+item --key d menu-diag    System tools...
+item --key i menu-install Installers...
+item --gap --             ------------------------- Advanced options -------------------------------
+item --key c config       Configure settings
+item shell                Drop to iPXE shell
+item reboot               Reboot computer
+item
+item --key x exit         Exit iPXE and continue BIOS boot
+choose --timeout ${menu-timeout} --default ${menu-default} selected || goto cancel
+set menu-timeout 0
+goto ${selected}
+
+:cancel
+echo You cancelled the menu, dropping you to a shell
+
+:shell
+echo Type 'exit' to get the back to the menu
+shell
+set menu-timeout 0
+set submenu-timeout 0
+goto start
+
+:failed
+echo Booting failed, dropping to shell
+goto shell
+
+:reboot
+reboot
+
+:exit
+exit
+
+:config
+config
+goto start
+
+:back
+set submenu-timeout 0
+clear submenu-default
+goto start
+
+############ MAIN MENU ITEMS ############
+
+:ubuntu
+echo Booting Ubuntu Desktop 20.04 from iSCSI
+#set root-path ${base-iscsi}:${hostname}.Ubuntu
+set root-path iscsi:10.30.9.99::::iqn.2005-10.org.freenas.ctl:ubuntu-desktop
+set keep-san 1
+sanboot --filename \EFI\ubuntu\grubx64.efi ${root-path} || goto failed
+#sanboot ${root-path} || goto failed
+goto start
+
+:ubuntu24
+echo Booting Ubuntu Desktop 2404 from iSCSI
+set root-path iscsi:10.30.9.99::::iqn.2005-10.org.freenas.ctl:ubuntu2404
+set keep-san 1
+sanboot --filename \EFI\ubuntu\grubx64.efi ${root-path} || goto failed
+#sanboot ${root-path} || goto failed
+goto start
+
+:tmp-recover
+echo Booting tmp-recover from iSCSI
+set root-path iscsi:10.30.9.99::::iqn.2005-10.org.freenas.ctl:tmp-recover
+set keep-san 1
+sanboot --filename \EFI\ubuntu\grubx64.efi ${root-path} || goto failed
+#sanboot ${root-path} || goto failed
+goto start
+
+###################### SYSTEM TOOL MENU #############################
+
+:menu-diag
+menu Diagnostic tools
+item memtest       Memtest86+
+item winpe         WinPE
+item
+item --key 0x08 back Back to top menu...
+iseq ${menu-default} menu-diag && isset ${submenu-default} && goto menu-diag-timed ||
+choose selected && goto ${selected} || goto start
+:menu-diag-timed
+choose --timeout ${submenu-timeout} --default ${submenu-default} selected && goto ${selected} || goto start
+
+:memtest
+set base-url http://${nas_ip}:88/tools
+initrd ${base-url}/memtest86_5.01.iso
+chain memdisk iso raw || goto failed
+goto start
+
+:winpe
+set base-url http://${nas_ip}:88/tools
+initrd ${base-url}/UQi_USBsys_10th.iso
+chain memdisk iso raw || goto failed
+goto start
+
+############################ INSTALLER MENU #########################
+
+:menu-install
+menu Installers for ${initiator-iqn}
+item win10install         win10install
+item winpe-install        PE
+item debian11-install     debian11-install
+item ubuntu2-install       ubuntu 20.04 desktop install
+item ubuntu2204-iso-install2   ubuntu 22.04 desktop install
+item ubuntu2404-iso-install    ubuntu 24.04 desktop install
+item ubuntu2604-iso-install    ubuntu 26.04 desktop install
+item zstack-inspect       zstack inspect hardware
+item centos-install       Hook CentOS ${archl} iSCSI and install
+item centos9-ironic       Hook CentOS Ironic
+item openeuler-2203-x86-install2        Hook openeuler x86 install
+item h3c-cas-E0730P06-install        Hook h3c cas E0730P06 install
+item V7R024-arm-install        Hook V7R024-arm install
+item V7R011F13-arm-install     Hook V7R011F13-arm install
+item Kylin-3.3-3B-x86-install  Hook Kylin-3.3-3B-x86 install
+item esxi-install         Hook ESXi ${archl} iSCSI and install
+item
+item --key 0x08 back      Back to top menu...
+iseq ${menu-default} menu-install && isset ${submenu-default} && goto menu-install-timed ||
+choose selected && goto ${selected} || goto start
+:menu-install-timed
+choose --timeout ${submenu-timeout} --default ${submenu-default} selected && goto ${selected} || goto start
+
+:winpe-install
+echo Booting Windows PE ${arch} installer for iqn.2022-3.org.freenas.ctl:ipxe
+echo (for installing Windows)
+set netX/gateway ${iscsi-server}
+# set root-path iscsi:10.0.0.10:::1:iqn.2022-3.org.freenas.ctl:ipxe
+# set keep-san 1
+# echo sanhook start...
+# sanhook --no-describe --drive 0x80 ${root-path} || goto failed
+echo set base url starting
+set base-url ${http-url}/Install/WinPE
+# kernel wimboot
+# initrd ${base-url}/boot/bcd BCD
+# initrd ${base-url}/boot/boot.sdi boot.sdi
+# initrd ${base-url}/sources/boot.wim boot.wim
+
+kernel ${base-url}/wimboot
+
+# initrd ${base-url}/bootmgr
+
+initrd ${base-url}/efi/boot/bootx64.efi        bootx64.efi
+
+# initrd ${base-url}/efi/microsoft/boot/bcd        BCD
+
+initrd ${base-url}/boot/bcd      BCD
+initrd ${base-url}/boot/boot.sdi    boot.sdi
+initrd ${base-url}/sources/boot.wim boot.wim
+
+
+
+
+boot || goto failed
+goto start
+
+
+
+
+:win10install
+#sanhook iscsi:10.90.3.25::::iqn.2005-10.org.freenas.ctl:ubuntu1 
+prompt -k 0x197e -t 10000 Press F12 to install Windows... || exit
+
+set base-url ${http-url}/Install/win10
+kernel ${base-url}/wimboot
+
+# initrd ${base-url}/bootmgr
+
+initrd ${base-url}/efi/boot/bootx64.efi        bootx64.efi
+
+# initrd ${base-url}/efi/microsoft/boot/bcd        BCD
+
+initrd ${base-url}/boot/bcd      BCD
+initrd ${base-url}/boot/boot.sdi    boot.sdi
+initrd ${base-url}/sources/boot.wim boot.wim
+boot || goto failed
+  goto start
+
+
+
+
+
+
+:debian11-install
+echo Starting Debian11  installer for iqn.2022-3.org.freenas.ctl:ubuntu1
+set root-path iscsi:10.90.3.25::::iqn.2005-10.org.freenas.ctl:ubuntu1
+set keep-san 1
+echo sanhook start...
+sanhook  --no-describe --drive 0x80 ${root-path} || goto failed
+set base-url ${http-url}/Install/debian11
+kernel ${base-url}/debian-installer/amd64/linux
+initrd ${base-url}/pxelinux.0
+initrd ${base-url}/debian-installer/amd64/bootnetx64.efi
+initrd ${base-url}/debian-installer/amd64/grubx64.efi
+initrd ${base-url}/debian-installer/amd64/initrd.gz
+# imgargs linux auto=true fb=false url=${base-url}/./preseed.cfg DEBCONF_DEBUG=5 netcfg/get_hostname=debian11 partman-iscsi/login/address=iqn.2022-3.org.freenas.ctl:ipxe partman-iscsi/login/targets=iqn.2022-3.org.freenas.ctl:ipxe
+boot || goto failed
+goto start
+
+:ubuntu2-install
+echo Starting ubuntu 20.04 desktop installer
+set base-url ${http-url}/ubuntu2004
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+imgargs vmlinuz initrd=initrd ip=dhcp boot=casper netboot=nfs nfsroot=10.30.9.99:/mnt/data1/ipxe/http/ubuntu2004 splash toram ---
+boot || goto failed
+goto start
+
+:ubuntu2204-iso-install
+echo adam-test sanboot iso
+set keep-san 1
+sanboot --no-describe -k --drive 0x81 http://10.30.9.99:9080/ubuntu-22.04.3-desktop-amd64.iso || goto failed
+goto start
+
+:ubuntu2204-iso-install2
+set base-url ${http-url}/ubuntu2204
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+imgargs vmlinuz initrd=initrd ip=dhcp url=http://10.30.9.99:9080/ubuntu2204/ubuntu-22.04.3-desktop-amd64.iso
+boot || goto failed
+goto start
+
+:ubuntu2404-iso-install
+set base-url ${http-url}/ubuntu2404
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+imgargs vmlinuz initrd=initrd ip=dhcp url=http://10.30.9.99:9080/ubuntu2404/ubuntu-24.04-desktop-amd64.iso
+boot || goto failed
+goto start
+
+# install failed twice
+:ubuntu2604-iso-install
+set base-url ${http-url}/ubuntu2604
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+imgargs vmlinuz initrd=initrd ip=dhcp url=http://10.30.9.99:9080/ubuntu2604/ubuntu-26.04-desktop-amd64.iso
+boot || goto failed
+goto start
+
+:ubuntu2604-iso-install2
+set base-url ${http-url}/ubuntu2604
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+imgargs vmlinuz ip=dhcp boot=casper iso-url=http://10.30.9.99:9080/ubuntu2604/ubuntu-26.04-desktop-amd64.iso
+boot || goto failed
+goto start
+
+:zstack-inspect
+set base-url ${http-url}/zstack
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd.img
+imgargs vmlinuz initrd=initrd.img devfs=nomount ksdevice=bootif ks=${http-url}/inspector_ks.cfg vnc
+boot || goto failed
+goto start
+
+:centos-install
+echo Starting KSVD mmj x86-64 installer for iscsi:10.30.9.99::::iqn.2005-10.org.freenas.ctl:centos7
+set base-url ${http-url}/ksvd819-1-mmj-x86
+set keep-san 1
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${base-url}/kickstart/ks.cfg devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:centos9-ironic
+echo Starting centos9 ironic
+set base-url ${http-url}/centos9-ironic
+imgfree
+kernel ${base-url}/deploy_kernel selinux=0 troubleshoot=0 text nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8 initrd=deploy_ramdisk || goto retry
+initrd ${base-url}/deploy_ramdisk || goto retry
+boot || goto failed
+goto start
+
+:openeuler-2203-x86-install
+echo Starting install openEuler-22.03-LTS-SP3-x86_64-dvd.iso
+set base-url ${http-url}/openeuler-x86
+set keep-san 1
+#kernel ${base-url}/images/pxeboot/vmlinuz ip=dhcp net.ifnames=0 biosdevname=0 inst.repo=${base-url} inst.ks=${base-url}/ks/ks.cfg devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz ip=dhcp net.ifnames=0 biosdevname=0 inst.repo=${base-url} devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:openeuler-2203-x86-install2
+echo Starting install openEuler-22.03-LTS-SP3-x86_64-dvd.iso
+#set base-url ftp://10.90.2.254/openEuler-22.03-LTS-SP3-x86_64-dvd
+set base-url http://10.30.9.97/openEuler-22.03-LTS-SP3-x86_64-dvd
+set keep-san 1
+kernel ${base-url}/images/pxeboot/vmlinuz ip=dhcp net.ifnames=0 biosdevname=0 inst.repo=${base-url} devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:h3c-cas-E0730P06-install
+echo Starting install H3C_CAS-E0730P06-centos-x86_64.iso
+set base-url ${http-url}/h3c-cas-E0730P06
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${base-url}/isolinux/ks.cfg devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} stage2=${base-url} ks=${base-url}/isolinux/ks.cfg devfs=nomount
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 repo=${base-url} ks=${base-url}/isolinux/ks.cfg devfs=nomount # failed
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 inst.stage2=${base-url} ks=${base-url}/isolinux/ks.cfg # failed
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 inst.repo=${base-url} ks=${base-url}/isolinux/ks.cfg # failed
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+
+:V7R024-arm-install
+echo Starting install V7R024-arm
+set base-url ${http-url}/V7R024-arm
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${base-url}/kickstart/ks.cfg devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/V7R024-auto-arm.ks devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:V7R011F13-arm-install
+echo Starting install KylinSec-BareMetal-Server-3.3-9-V7R011F13SP1S03.51572-2506-011019-aarch64.iso
+#set base-url ${http-url}/V7R011F13-arm
+set base-url http://10.30.9.97/KylinSec-BareMetal-Server-3.3-9-V7R011F13SP1S03.51572-2506-011019-aarch64
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/V7R011F13-auto-arm.ks devfs=nomount
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${base-url}/kickstart/ks.cfg devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/V7R011F13-arm.ks devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:Kylin-3.3-3B-x86-install
+echo Starting install Kylin-3.3-3B-x86_64.iso
+set base-url ${http-url}/Kylin-3.3-3B-x86_64
+#set base-url http://10.30.9.97/Kylin-3.3-3B-x86_64
+set keep-san 1
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/Kylin-3.3-3B-auto-x86.ks devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:esxi-install
+echo Starting ESXi 6.7 installer for iqn.2022-3.org.freenas.ctl:ipxe
+set root-path iscsi:10.90.3.25::::iqn.2005-10.org.freenas.ctl:ubuntu1
+set base-url ${http-url}/Install/ESXI
+set keep-san 1
+sanhook ${root-path} || goto failed
+initrd ${base-url}/123.iso
+chain memdisk iso raw || goto failed
+goto start
