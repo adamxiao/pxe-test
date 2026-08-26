@@ -124,7 +124,7 @@ item debian11-install     debian11-install
 item ubuntu2-install       ubuntu 20.04 desktop install
 item ubuntu2204-iso-install2   ubuntu 22.04 desktop install
 item ubuntu2404-iso-install    ubuntu 24.04 desktop install
-item ubuntu2604-iso-install    ubuntu 26.04 desktop install
+item ubuntu2604-iso-install3   ubuntu 26.04 desktop install
 item zstack-inspect       zstack inspect hardware
 item centos-install       Hook CentOS ${archl} iSCSI and install
 item centos9-ironic       Hook CentOS Ironic
@@ -262,6 +262,16 @@ set base-url ${http-url}/ubuntu2604
 kernel ${base-url}/vmlinuz
 initrd ${base-url}/initrd
 imgargs vmlinuz ip=dhcp boot=casper iso-url=http://10.30.9.99:9080/ubuntu2604/ubuntu-26.04-desktop-amd64.iso
+boot || goto failed
+goto start
+
+:ubuntu2604-iso-install3
+set base-url ${http-url}/ubuntu2604
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+imgargs vmlinuz initrd=initrd root=/dev/ram0 ramdisk_size=8388608 \
+  boot=casper netboot=url ip=dhcp cloud-config-url=/dev/null \
+  url=http://10.30.9.99:9080/ubuntu2604/ubuntu-26.04-desktop-amd64.iso
 boot || goto failed
 goto start
 
