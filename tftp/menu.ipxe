@@ -123,15 +123,17 @@ item winpe-install        PE
 item debian11-install     debian11-install
 item ubuntu2-install       ubuntu 20.04 desktop install
 item ubuntu2204-iso-install2   ubuntu 22.04 desktop install
-item ubuntu2404-iso-install    ubuntu 24.04 desktop install
+item ubuntu2404-iso-install2   ubuntu 24.04 desktop install
 item ubuntu2604-iso-install3   ubuntu 26.04 desktop install
 item zstack-inspect       zstack inspect hardware
 item centos-install       Hook CentOS ${archl} iSCSI and install
 item centos9-ironic       Hook CentOS Ironic
 item openeuler-2203-x86-install2        Hook openeuler x86 install
+item openeuler-2403-x86-install         Hook openeuler 24.03 x86 install
 item h3c-cas-E0730P06-install        Hook h3c cas E0730P06 install
 item V7R024-arm-install        Hook V7R024-arm install
 item V7R011F13-arm-install     Hook V7R011F13-arm install
+item V7R011F13-x86-install     Hook V7R011F13-x86 install
 item Kylin-3.3-3B-x86-install  Hook Kylin-3.3-3B-x86 install
 item esxi-install         Hook ESXi ${archl} iSCSI and install
 item
@@ -248,6 +250,17 @@ imgargs vmlinuz initrd=initrd ip=dhcp url=http://10.30.9.99:9080/ubuntu2404/ubun
 boot || goto failed
 goto start
 
+:ubuntu2404-iso-install2
+set base-url ${http-url}/ubuntu2404
+kernel ${base-url}/vmlinuz
+initrd ${base-url}/initrd
+#imgargs vmlinuz initrd=initrd ip=dhcp url=http://10.30.9.99:9080/ubuntu2404/ubuntu-24.04-desktop-amd64.iso
+imgargs vmlinuz initrd=initrd root=/dev/ram0 ramdisk_size=8388608 \
+  boot=casper netboot=url ip=dhcp cloud-config-url=/dev/null \
+  url=http://10.30.9.99:9080/ubuntu2404/ubuntu-24.04-desktop-amd64.iso
+boot || goto failed
+goto start
+
 # install failed twice
 :ubuntu2604-iso-install
 set base-url ${http-url}/ubuntu2604
@@ -321,6 +334,16 @@ initrd ${base-url}/images/pxeboot/initrd.img
 boot || goto failed
 goto start
 
+:openeuler-2403-x86-install
+echo Starting install openEuler-24.03-LTS-SP4-x86_64-dvd.iso
+#set base-url ${http-url}/openeuler2403-x86
+set base-url ${http-url}/mount/openEuler-24.03-LTS-SP4-x86_64-dvd.iso
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 inst.repo=${base-url} inst.ks=${base-url}/ks/ks.cfg devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 inst.repo=${base-url} inst.ks=${http-url}/ks/openeuler-auto-x86.ks devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
 :h3c-cas-E0730P06-install
 echo Starting install H3C_CAS-E0730P06-centos-x86_64.iso
 set base-url ${http-url}/h3c-cas-E0730P06
@@ -350,6 +373,15 @@ set base-url http://10.30.9.97/KylinSec-BareMetal-Server-3.3-9-V7R011F13SP1S03.5
 #kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/V7R011F13-auto-arm.ks devfs=nomount
 #kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${base-url}/kickstart/ks.cfg devfs=nomount
 kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/V7R011F13-arm.ks devfs=nomount
+initrd ${base-url}/images/pxeboot/initrd.img
+boot || goto failed
+goto start
+
+:V7R011F13-x86-install
+echo Starting install V7R011F13-x86-install
+set base-url ${http-url}/mount/KylinSec-BareMetal-Server-3.3-9-V7R011F13SP1S03.51572-2506-011019-x86_64.iso
+#kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${base-url}/kickstart/ks.cfg devfs=nomount
+kernel ${base-url}/images/pxeboot/vmlinuz initrd=initrd.img ip=dhcp net.ifnames=0 biosdevname=0 method=${base-url} ks=${http-url}/ks/V7R011F13-auto-x86.ks devfs=nomount
 initrd ${base-url}/images/pxeboot/initrd.img
 boot || goto failed
 goto start
